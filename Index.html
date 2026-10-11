@@ -1,0 +1,377 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>Live Cricket Scoreboard</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      touch-action: manipulation;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .pb-safe {
+      padding-bottom: env(safe-area-inset-bottom, 16px);
+    }
+  </style>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen antialiased flex flex-col justify-between select-none">
+
+  <!-- Top Navigation Bar -->
+  <header class="bg-slate-900 border-b border-slate-800 px-4 py-3 sticky top-0 z-30 shadow-md">
+    <div class="max-w-2xl mx-auto flex items-center justify-between">
+      <div class="flex items-center gap-2">
+        <div class="w-8 h-8 rounded-lg bg-emerald-500/20 text-emerald-400 flex items-center justify-center font-bold">
+          <i class="fa-solid fa-trophy text-sm"></i>
+        </div>
+        <div>
+          <h1 class="font-bold text-sm leading-tight text-white">Match Scorer</h1>
+          <p id="matchStatusText" class="text-[11px] text-emerald-400 font-medium">1st Innings</p>
+        </div>
+      </div>
+      <button onclick="resetMatch()" class="text-xs text-rose-400 bg-rose-500/10 hover:bg-rose-500/20 px-2.5 py-1.5 rounded-lg border border-rose-500/20 flex items-center gap-1.5">
+        <i class="fa-solid fa-rotate-right"></i> Reset
+      </button>
+    </div>
+  </header>
+
+  <!-- Main Content Canvas -->
+  <main class="max-w-2xl w-full mx-auto p-3 sm:p-4 space-y-3 flex-grow">
+
+    <!-- Big Screen Hero Score Card -->
+    <div class="bg-gradient-to-br from-slate-900 via-slate-900 to-slate-800 rounded-2xl border border-slate-800 p-4 shadow-xl">
+      <div class="flex justify-between items-start text-xs text-slate-400 font-medium">
+        <span class="text-emerald-400 font-bold tracking-wider uppercase">Team Inning</span>
+        <span id="crrDisplay" class="font-mono text-slate-300 bg-slate-800 px-2 py-0.5 rounded-md border border-slate-700">CRR: 0.00</span>
+      </div>
+
+      <div class="my-3 flex items-baseline justify-center gap-2">
+        <span id="scoreDisplay" class="text-6xl sm:text-7xl font-extrabold tracking-tight text-white font-mono">0</span>
+        <span class="text-4xl sm:text-5xl font-light text-slate-600">/</span>
+        <span id="wicketsDisplay" class="text-5xl sm:text-6xl font-bold text-rose-500 font-mono">0</span>
+      </div>
+
+      <div class="flex justify-center items-center gap-2 text-sm text-slate-400 font-medium">
+        <span>Overs:</span>
+        <span id="oversDisplay" class="font-bold text-white font-mono text-base">0.0</span>
+        <span class="text-slate-600">/</span>
+        <span id="maxOversDisplay" class="text-slate-400 font-mono">20</span>
+      </div>
+    </div>
+
+    <!-- Active Batters & Bowler Dynamic Cards -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+      
+      <!-- Batters Card -->
+      <div class="bg-slate-900/90 border border-slate-800 rounded-xl p-3">
+        <div class="flex justify-between items-center text-xs font-semibold text-slate-400 border-b border-slate-800 pb-1.5 mb-2">
+          <span><i class="fa-solid fa-baseball-bat-ball text-amber-400 mr-1"></i> Batters</span>
+          <span class="font-mono text-[10px]">R (B)</span>
+        </div>
+        <div class="space-y-1.5 text-xs">
+          <div id="batter1Row" class="flex justify-between items-center font-bold text-emerald-400 bg-emerald-500/10 px-2 py-1 rounded">
+            <span id="batter1Name">Batter 1 *</span>
+            <span id="batter1Stats" class="font-mono">0 (0)</span>
+          </div>
+          <div id="batter2Row" class="flex justify-between items-center text-slate-300 px-2 py-1">
+            <span id="batter2Name">Batter 2</span>
+            <span id="batter2Stats" class="font-mono">0 (0)</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Current Bowler Card -->
+      <div class="bg-slate-900/90 border border-slate-800 rounded-xl p-3 flex flex-col justify-between">
+        <div>
+          <div class="flex justify-between items-center text-xs font-semibold text-slate-400 border-b border-slate-800 pb-1.5 mb-2">
+            <span><i class="fa-solid fa-bullseye text-rose-400 mr-1"></i> Current Bowler</span>
+            <button onclick="changeBowler()" class="text-amber-400 hover:underline text-[11px] font-normal">Next Bowler</button>
+          </div>
+          <div class="flex justify-between items-center text-xs font-bold text-white px-2 py-1">
+            <span id="bowlerName">Bowler 1</span>
+            <span id="bowlerFigures" class="font-mono text-emerald-400">0 - 0</span>
+          </div>
+        </div>
+        <div class="text-[11px] text-slate-400 font-mono px-2 pt-1">
+          Overs: <span id="bowlerOvers">0.0</span> &bull; Econ: <span id="bowlerEcon">0.00</span>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Live Over Breakdown -->
+    <div class="bg-slate-900 border border-slate-800 rounded-xl p-3">
+      <div class="flex items-center justify-between text-xs mb-2">
+        <span class="text-slate-400 uppercase tracking-wider font-semibold text-[11px]">This Over</span>
+        <button onclick="undoDelivery()" class="text-amber-400 hover:text-amber-300 font-medium text-xs flex items-center gap-1 active:scale-95 transition">
+          <i class="fa-solid fa-arrow-rotate-left"></i> Undo
+        </button>
+      </div>
+      <div id="currentOverStrip" class="flex items-center gap-2 min-h-[32px] overflow-x-auto pb-1">
+        <span class="text-slate-500 text-xs italic">Awaiting first delivery...</span>
+      </div>
+    </div>
+
+    <!-- Scoring Touch Keypad -->
+    <div class="bg-slate-900 border border-slate-800 rounded-2xl p-3 shadow-lg space-y-2.5">
+      <!-- Standard Run Buttons -->
+      <div class="grid grid-cols-4 gap-2">
+        <button onclick="scoreRun(0)" class="h-12 bg-slate-800 hover:bg-slate-700 active:bg-slate-600 rounded-xl font-mono font-bold text-lg text-white shadow active:scale-95 transition">0</button>
+        <button onclick="scoreRun(1)" class="h-12 bg-slate-800 hover:bg-slate-700 active:bg-slate-600 rounded-xl font-mono font-bold text-lg text-white shadow active:scale-95 transition">1</button>
+        <button onclick="scoreRun(2)" class="h-12 bg-slate-800 hover:bg-slate-700 active:bg-slate-600 rounded-xl font-mono font-bold text-lg text-white shadow active:scale-95 transition">2</button>
+        <button onclick="scoreRun(3)" class="h-12 bg-slate-800 hover:bg-slate-700 active:bg-slate-600 rounded-xl font-mono font-bold text-lg text-white shadow active:scale-95 transition">3</button>
+        <button onclick="scoreRun(4)" class="h-12 bg-blue-600 hover:bg-blue-500 active:bg-blue-700 rounded-xl font-mono font-bold text-lg text-white shadow active:scale-95 transition">4</button>
+        <button onclick="scoreRun(6)" class="h-12 bg-purple-600 hover:bg-purple-500 active:bg-purple-700 rounded-xl font-mono font-bold text-lg text-white shadow active:scale-95 transition">6</button>
+        <button onclick="scoreExtra('WD')" class="h-12 bg-amber-700/80 hover:bg-amber-600 active:bg-amber-800 rounded-xl font-semibold text-xs text-white shadow active:scale-95 transition">Wide (+1)</button>
+        <button onclick="scoreExtra('NB')" class="h-12 bg-amber-700/80 hover:bg-amber-600 active:bg-amber-800 rounded-xl font-semibold text-xs text-white shadow active:scale-95 transition">No Ball (+1)</button>
+      </div>
+
+      <!-- Action Buttons -->
+      <div class="grid grid-cols-2 gap-2">
+        <button onclick="scoreWicket()" class="h-12 bg-rose-600 hover:bg-rose-500 active:bg-rose-700 rounded-xl font-bold text-sm text-white shadow active:scale-95 transition flex items-center justify-center gap-2">
+          <i class="fa-solid fa-circle-xmark"></i> Wicket
+        </button>
+        <button onclick="swapStrike()" class="h-12 bg-slate-800 hover:bg-slate-700 active:bg-slate-600 border border-slate-700 rounded-xl font-semibold text-sm text-slate-200 shadow active:scale-95 transition flex items-center justify-center gap-2">
+          <i class="fa-solid fa-arrows-rotate text-emerald-400"></i> Swap Strike
+        </button>
+      </div>
+    </div>
+
+  </main>
+
+  <footer class="text-center py-2 text-[11px] text-slate-600 pb-safe">
+    Simple Live Cricket Scorer
+  </footer>
+
+  <script>
+    let state = {
+      runs: 0,
+      wickets: 0,
+      balls: 0,
+      maxOvers: 20,
+      nextBatterNumber: 3,
+      currentBowlerIndex: 1,
+      striker: { name: "Batter 1", runs: 0, balls: 0, id: 1 },
+      nonStriker: { name: "Batter 2", runs: 0, balls: 0, id: 2 },
+      bowlers: {
+        1: { name: "Bowler 1", runs: 0, balls: 0, wickets: 0 }
+      },
+      currentOver: [],
+      history: []
+    };
+
+    function saveHistory() {
+      state.history.push(JSON.parse(JSON.stringify({
+        runs: state.runs,
+        wickets: state.wickets,
+        balls: state.balls,
+        nextBatterNumber: state.nextBatterNumber,
+        currentBowlerIndex: state.currentBowlerIndex,
+        striker: state.striker,
+        nonStriker: state.nonStriker,
+        bowlers: state.bowlers,
+        currentOver: [...state.currentOver]
+      })));
+    }
+
+    function getActiveBowler() {
+      if (!state.bowlers[state.currentBowlerIndex]) {
+        state.bowlers[state.currentBowlerIndex] = {
+          name: "Bowler " + state.currentBowlerIndex,
+          runs: 0,
+          balls: 0,
+          wickets: 0
+        };
+      }
+      return state.bowlers[state.currentBowlerIndex];
+    }
+
+    function scoreRun(runs) {
+      if (state.wickets >= 10) return alert("Innings completed: 10 wickets down.");
+      saveHistory();
+
+      const bowler = getActiveBowler();
+      state.runs += runs;
+      state.balls += 1;
+      state.striker.runs += runs;
+      state.striker.balls += 1;
+      bowler.runs += runs;
+      bowler.balls += 1;
+
+      state.currentOver.push(runs === 0 ? "•" : runs.toString());
+
+      if (runs % 2 !== 0) {
+        swapBattersDirectly();
+      }
+
+      handleOverEnd();
+      updateUI();
+    }
+
+    function scoreExtra(type) {
+      saveHistory();
+      const bowler = getActiveBowler();
+      state.runs += 1;
+      bowler.runs += 1;
+      state.currentOver.push(type);
+      updateUI();
+    }
+
+    function scoreWicket() {
+      if (state.wickets >= 10) return alert("Innings completed: 10 wickets down.");
+      saveHistory();
+
+      const bowler = getActiveBowler();
+      state.wickets += 1;
+      state.balls += 1;
+      state.striker.balls += 1;
+      bowler.balls += 1;
+      bowler.wickets += 1;
+
+      state.currentOver.push("W");
+
+      // Replace striker with next sequential batter
+      if (state.wickets < 10) {
+        state.striker = {
+          name: "Batter " + state.nextBatterNumber,
+          runs: 0,
+          balls: 0,
+          id: state.nextBatterNumber
+        };
+        state.nextBatterNumber += 1;
+      }
+
+      handleOverEnd();
+      updateUI();
+    }
+
+    function swapBattersDirectly() {
+      const temp = state.striker;
+      state.striker = state.nonStriker;
+      state.nonStriker = temp;
+    }
+
+    function swapStrike() {
+      swapBattersDirectly();
+      updateUI();
+    }
+
+    function handleOverEnd() {
+      if (state.balls > 0 && state.balls % 6 === 0) {
+        swapBattersDirectly();
+        setTimeout(() => {
+          state.currentOver = [];
+          updateUI();
+        }, 1500);
+      }
+    }
+
+    function changeBowler() {
+      saveHistory();
+      state.currentBowlerIndex += 1;
+      getActiveBowler();
+      updateUI();
+    }
+
+    function undoDelivery() {
+      if (state.history.length === 0) return;
+      const prev = state.history.pop();
+      state.runs = prev.runs;
+      state.wickets = prev.wickets;
+      state.balls = prev.balls;
+      state.nextBatterNumber = prev.nextBatterNumber;
+      state.currentBowlerIndex = prev.currentBowlerIndex;
+      state.striker = prev.striker;
+      state.nonStriker = prev.nonStriker;
+      state.bowlers = prev.bowlers;
+      state.currentOver = prev.currentOver;
+      updateUI();
+    }
+
+    function resetMatch() {
+      if (!confirm("Are you sure you want to reset the scoreboard?")) return;
+      state = {
+        runs: 0,
+        wickets: 0,
+        balls: 0,
+        maxOvers: 20,
+        nextBatterNumber: 3,
+        currentBowlerIndex: 1,
+        striker: { name: "Batter 1", runs: 0, balls: 0, id: 1 },
+        nonStriker: { name: "Batter 2", runs: 0, balls: 0, id: 2 },
+        bowlers: {
+          1: { name: "Bowler 1", runs: 0, balls: 0, wickets: 0 }
+        },
+        currentOver: [],
+        history: []
+      };
+      updateUI();
+    }
+
+    function updateUI() {
+      // Scoreboard numbers
+      document.getElementById("scoreDisplay").innerText = state.runs;
+      document.getElementById("wicketsDisplay").innerText = state.wickets;
+
+      const completedOvers = Math.floor(state.balls / 6);
+      const ballsInOver = state.balls % 6;
+      document.getElementById("oversDisplay").innerText = `${completedOvers}.${ballsInOver}`;
+
+      const totalOversDec = state.balls > 0 ? (state.balls / 6) : 0;
+      const crr = totalOversDec > 0 ? (state.runs / totalOversDec).toFixed(2) : "0.00";
+      document.getElementById("crrDisplay").innerText = `CRR: ${crr}`;
+
+      // Batters display
+      document.getElementById("batter1Name").innerText = `${state.striker.name} *`;
+      document.getElementById("batter1Stats").innerText = `${state.striker.runs} (${state.striker.balls})`;
+      document.getElementById("batter2Name").innerText = state.nonStriker.name;
+      document.getElementById("batter2Stats").innerText = `${state.nonStriker.runs} (${state.nonStriker.balls})`;
+
+      // Bowler display
+      const activeBowler = getActiveBowler();
+      document.getElementById("bowlerName").innerText = activeBowler.name;
+      document.getElementById("bowlerFigures").innerText = `${activeBowler.runs} - ${activeBowler.wickets}`;
+
+      const bOvers = Math.floor(activeBowler.balls / 6);
+      const bBalls = activeBowler.balls % 6;
+      document.getElementById("bowlerOvers").innerText = `${bOvers}.${bBalls}`;
+
+      const bowlerDec = activeBowler.balls > 0 ? (activeBowler.balls / 6) : 0;
+      const bEcon = bowlerDec > 0 ? (activeBowler.runs / bowlerDec).toFixed(2) : "0.00";
+      document.getElementById("bowlerEcon").innerText = bEcon;
+
+      // Ball badges
+      const strip = document.getElementById("currentOverStrip");
+      strip.innerHTML = "";
+      if (state.currentOver.length === 0) {
+        strip.innerHTML = '<span class="text-slate-500 text-xs italic">Over starting...</span>';
+      } else {
+        state.currentOver.forEach(ball => {
+          const badge = document.createElement("span");
+          badge.className = "w-7 h-7 flex-shrink-0 rounded-full flex items-center justify-center font-bold text-xs ";
+          if (ball === "W") {
+            badge.className += "bg-rose-600 text-white";
+          } else if (ball === "4") {
+            badge.className += "bg-blue-600 text-white";
+          } else if (ball === "6") {
+            badge.className += "bg-purple-600 text-white";
+          } else if (ball === "WD" || ball === "NB") {
+            badge.className += "bg-amber-600 text-white text-[10px]";
+          } else if (ball === "•") {
+            badge.className += "bg-slate-800 text-slate-500";
+          } else {
+            badge.className += "bg-slate-700 text-white";
+          }
+          badge.innerText = ball;
+          strip.appendChild(badge);
+        });
+      }
+    }
+
+    updateUI();
+  </script>
+</body>
+  </html>
+  
